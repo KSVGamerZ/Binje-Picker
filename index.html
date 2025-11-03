@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CineTunes - Movie Music Recommendations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-purple-600 to-pink-500 min-h-screen flex flex-col items-center p-6 text-white">
+
+    <!-- Header -->
+    <header class="text-center mb-10">
+        <h1 class="text-5xl font-extrabold mb-2">CineTunes</h1>
+        <p class="text-lg font-light">Discover the perfect soundtrack for every movie moment</p>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="w-full max-w-xl flex mb-8">
+        <input 
+            type="text" 
+            id="search-input" 
+            placeholder="Search movies or music..." 
+            class="flex-grow px-4 py-3 rounded-l-lg text-black focus:outline-none" 
+        />
+        <button id="search-btn" class="bg-white text-purple-700 px-6 rounded-r-lg font-semibold hover:bg-purple-100 transition">
+            Search
+        </button>
+    </div>
+
+    <!-- Recommendations Container -->
+    <main id="recommendations" class="w-full max-w-xl grid gap-6 text-black"></main>
+
+    <script>
+        const recommendationsContainer = document.getElementById('recommendations');
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+
+        function createMovieCard(movie) {
+            // Use a placeholder image, replace if you have URLs available in data
+            const placeholderImage = 'https://via.placeholder.com/300x450?text=No+Image';
+
+            return `
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden flex">
+                <img src="${placeholderImage}" alt="${movie.SeriesTitle}" class="w-24 md:w-32 object-cover" />
+                <div class="p-4 flex flex-col justify-between">
+                    <h3 class="font-bold text-xl mb-1">${movie.SeriesTitle}</h3>
+                    <p class="text-sm text-gray-700 mb-2">${movie.Genre}</p>
+                    <p class="text-sm mb-2">${movie.Overview.length > 150 ? movie.Overview.slice(0,150) + "..." : movie.Overview}</p>
+                    <div class="font-semibold text-purple-700">IMDb: ${movie.IMDBRating}</div>
+                </div>
+            </div>`;
+        }
+
+        async function fetchRecommendations(query) {
+            if (!query.trim()) {
+                recommendationsContainer.innerHTML = `<p class="text-white text-center">Please enter something to search.</p>`;
+                return;
+            }
+
+            recommendationsContainer.innerHTML = `<p class="text-white text-center">Loading recommendations...</p>`;
+
+            try {
+                const response = await fetch('/recommend', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({query: query})
+                });
+                const data = await response.json();
+                if (data.error) {
+                    recommendationsContainer.innerHTML = `<p class="text-white text-center">${data.error}</p>`;
+                    return;
+                }
+                if (data.length === 0) {
+                    recommendationsContainer.innerHTML = `<p class="text-white text-center">No recommendations found.</p>`;
+                    return;
+                }
+                recommendationsContainer.innerHTML = data.map(createMovieCard).join('');
+            } catch (e) {
+                recommendationsContainer.innerHTML = `<p class="text-white text-center">Error fetching recommendations.</p>`;
+            }
+        }
+
+        searchBtn.addEventListener('click', () => {
+            fetchRecommendations(searchInput.value);
+        });
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                fetchRecommendations(searchInput.value);
+            }
+        });
+    </script>
+</body>
+</html>
